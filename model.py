@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup, element
-from pprint import pprint
+# from pprint import pprint
+
 
 def get_data(_activityid, _username):
     url = 'http://admin.stepbridge.nl/show.php?page='
@@ -30,7 +31,8 @@ def extract_data(_soup):
 def get_metadata(_activityid):
     """
     This function gets the tournament meta data from the
-    parent page. It does all the above in this small function.
+    parent page. It does all everything in this small function,
+    the request and the extraction of data through BeautifulSoup.
     :param _activityid:
     :return: dictionary with tournament meta data
     """
@@ -40,6 +42,7 @@ def get_metadata(_activityid):
     soup = BeautifulSoup(_data.content, 'html.parser')
     table = soup.find('table', class_='data')
     _data = {}
+    key = ''
     for tr in table.children:
         if tr.name == 'col':
             continue
@@ -53,3 +56,45 @@ def get_metadata(_activityid):
                     key = td.text[:-1]
                 index += 1
     return _data
+
+
+def process_results(_data):
+    _table = _data.find('table')
+    # print(_table.prettify())
+    results = []
+    for tr in _table.tbody.children:
+        if type(tr) != element.NavigableString:
+            index = 0
+            row = {}
+            for td in tr.children:
+                if type(td) != element.NavigableString:
+                    if index == 0:
+                        row['spel'] = td.text
+                    if index == 1:
+                        if td.text == 'spel niet gespeeld':
+                            row['contract'] = '-'
+                            row['result'] = '-'
+                            row['declarer'] = '-'
+                            row['points'] = '-'
+                            row['lead'] = '-'
+                            row['score'] = '-'
+                            break
+                        else:
+                            color = 'NT'
+                            if len(td.contents) > 1:
+                                color = td.contents[1]['alt']
+                            row['contract'] = td.text.strip()[0] + color
+                    if index == 2:
+                        row['result'] = td.text
+                    if index == 3:
+                        row['declarer'] = td.text
+                    if index == 4:
+                        row['points'] = td.text
+                    if index == 5:
+                        row['score'] = td.text
+
+                    index += 1
+                else:
+                    continue
+            results.append(row)
+    return results
