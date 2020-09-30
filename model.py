@@ -80,9 +80,12 @@ def process_results(_data):
                             row['score'] = '-'
                             break
                         else:
-                            color = 'NT'
+                            color = td.contents[0].strip().replace('SA', 'NT')[1:]
                             if len(td.contents) > 1:
                                 color = td.contents[1]['alt']
+                            if len(td.contents) > 2:
+                                # X or XX
+                                color += td.contents[2]
                             row['contract'] = td.text.strip()[0] + color
                     if index == 2:
                         row['result'] = td.text
