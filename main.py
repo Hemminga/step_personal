@@ -19,3 +19,4 @@ if __name__ == '__main__':
     pprint(meta)
     results = model.process_results(tables[2])
     pprint(results)
+    details = model.process_details(tables[4])

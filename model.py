@@ -3,9 +3,9 @@ from bs4 import BeautifulSoup, element
 # from pprint import pprint
 
 
-def get_data(_activityid, _username):
+def get_data(_activity_id, _username):
     url = 'http://admin.stepbridge.nl/show.php?page='
-    url += f'tournamentinfo&activityid={_activityid}&username={_username}'
+    url += f'tournamentinfo&activityid={_activity_id}&username={_username}'
     _data = requests.get(url)
 
     return _data.content
@@ -28,16 +28,16 @@ def extract_data(_soup):
     return tables
 
 
-def get_metadata(_activityid):
+def get_metadata(_activity_id):
     """
     This function gets the tournament meta data from the
     parent page. It does all everything in this small function,
     the request and the extraction of data through BeautifulSoup.
-    :param _activityid:
+    :param _activity_id:
     :return: dictionary with tournament meta data
     """
     url = 'http://admin.stepbridge.nl/show.php?page='
-    url += f'tournamentinfo&activityid={_activityid}'
+    url += f'tournamentinfo&activityid={_activity_id}'
     _data = requests.get(url)
     soup = BeautifulSoup(_data.content, 'html.parser')
     table = soup.find('table', class_='data')
@@ -101,3 +101,28 @@ def process_results(_data):
                     continue
             results.append(row)
     return results
+
+
+def process_details(_data):
+    print(_data.name)
+    _tables = _data.td.find_all('table', recursive=False)
+    # details = []
+    tables = []
+    for table in _tables:
+        print(type(table))
+        if type(table) == element.NavigableString:
+            continue
+        tables.append(table)
+    for table in tables:
+        index = 0
+        for td in table.tbody.tr.children:
+            if index == 0:
+                # This table contains the game
+                pass
+            else:
+                # This table contains the board results
+                pass
+            if type(td) == element.NavigableString:
+                continue
+            print(td.name)
+            index +=1
