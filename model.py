@@ -80,6 +80,7 @@ def process_results(_data):
                             row['score'] = '-'
                             break
                         else:
+                            # @TODO CHeck this with all possible input
                             color = td.contents[0].strip().replace('SA', 'NT')[1:]
                             if len(td.contents) > 1:
                                 color = td.contents[1]['alt']
@@ -90,11 +91,14 @@ def process_results(_data):
                     if index == 2:
                         row['result'] = td.text
                     if index == 3:
-                        row['declarer'] = td.text
+                        row['side'] = td.text.replace('Z', 'S').replace('O', 'E')
                     if index == 4:
                         row['points'] = td.text
                     if index == 5:
-                        row['score'] = td.text
+                        # @TODO Check this with all possible input
+                        score = td.text.split(' ')
+                        row['score'] = score[0]
+                        row['score_type'] = score[1]
 
                     index += 1
                 else:
