@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup, element
-# from pprint import pprint
+# rom pprint import pprint
 
 
 def get_data(_activity_id, _username):
@@ -144,18 +144,17 @@ def process_results(_data):
 
 
 def process_details(_data):
-    print(_data.name)
     _tables = _data.td.find_all('table', recursive=False)
     # details = []
     tables = []
+    boards = []
+    results = []
     for table in _tables:
-        print(type(table))
         if type(table) == element.NavigableString:
             continue
         tables.append(table)
     for table in tables:
         index = 0
-        # print(table.tbody.tr)
         for td in table.tbody.tr.children:
             if type(td) == element.NavigableString:
                 if not td.isspace():
@@ -163,18 +162,73 @@ def process_details(_data):
                 continue
             if index == 0:
                 # This table contains the game
-                process_game_data(td)
+                boards.append(process_game_data(td))
             else:
                 # This table contains the board results
-                process_results_data(td)
-
-            # print(td.name)
+                results.append(process_results_data(td))
             index += 1
+    return boards, results
 
 
 def process_game_data(_data):
-    pass
+    if len(_data.contents) == 2:
+        print("Board not played")
+        # @TODO We can process the board here
+        return {}
+    board_table = _data.contents[1]
+    bidding_table = _data.contents[5]
+    play_table = _data.contents[9]
+
+    # Process board_table
+    rows = []
+    for tr in board_table.children:
+        if type(tr) == element.NavigableString:
+            if not tr.isspace():
+                print(tr)
+            continue
+        if tr.name == 'col':
+            continue
+        rows.append(tr)
+    board = {'player1': {}, 'player2': {}, 'player3': {}, 'player4': {}}
+    meta = rows[0].contents[1].text.split('/')
+    board['dealer'] = meta[0]
+    board['vulnerable'] = meta[1]
+    print(rows[0].contents)
+    print(rows[1].contents)
+    player_data = rows[0].contents[3].text.split(' - ')
+    board['player1']['name'] = player_data[1]
+    board['player1']['seat'] = player_data[0]
+    board['player1']['spades'] = rows[1].contents[3].text.strip()
+    board['player1']['hearts'] = rows[2].contents[3].text.strip()
+    board['player1']['diamonds'] = rows[3].contents[3].text.strip()
+    board['player1']['clubs'] = rows[4].contents[3].text.strip()
+    player_data = rows[4].contents[5].text.split(' - ')
+    board['player2']['name'] = player_data[1]
+    board['player2']['seat'] = player_data[0]
+    board['player2']['spades'] = rows[5].contents[5].text.strip()
+    board['player2']['hearts'] = rows[6].contents[5].text.strip()
+    board['player2']['diamonds'] = rows[7].contents[5].text.strip()
+    board['player2']['clubs'] = rows[8].contents[5].text.strip()
+    player_data = rows[4].contents[1].text.split(' - ')
+    board['player3']['name'] = player_data[1]
+    board['player3']['seat'] = player_data[0]
+    board['player3']['spades'] = rows[5].contents[1].text.strip()
+    board['player3']['hearts'] = rows[6].contents[1].text.strip()
+    board['player3']['diamonds'] = rows[7].contents[1].text.strip()
+    board['player3']['clubs'] = rows[8].contents[1].text.strip()
+    player_data = rows[8].contents[3].text.split(' - ')
+    board['player4']['name'] = player_data[1]
+    board['player4']['seat'] = player_data[0]
+    board['player4']['spades'] = rows[9].contents[3].text.strip()
+    board['player4']['hearts'] = rows[10].contents[3].text.strip()
+    board['player4']['diamonds'] = rows[11].contents[3].text.strip()
+    board['player4']['clubs'] = rows[12].contents[3].text.strip()
+
+    # Process bidding table
+
+    return {'board': board}
 
 
 def process_results_data(_data):
-    pass
+    results_table = _data.contents[1]
+    return {}

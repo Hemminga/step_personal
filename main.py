@@ -8,7 +8,6 @@ username = "FoppeHe"
 if __name__ == '__main__':
     # Event data
     tables = model.get_metadata(activityid)
-    print(len(tables))
     event_details = model.process_event(tables[0])
     pprint(event_details)
     # Pairs
@@ -33,4 +32,5 @@ if __name__ == '__main__':
     # have benefit of adding the lead.
     # results = model.process_results(tables[2])
     # pprint(results)
-    details = model.process_details(tables[4])
+    boards, results = model.process_details(tables[4])
+    pprint(boards[0])
