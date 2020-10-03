@@ -40,10 +40,14 @@ def get_metadata(_activity_id):
     url += f'tournamentinfo&activityid={_activity_id}'
     _data = requests.get(url)
     soup = BeautifulSoup(_data.content, 'html.parser')
-    table = soup.find('table', class_='data')
+    tables = soup.find_all('table', class_='data')
+    return tables
+
+
+def process_event(_event):
     _data = {}
     key = ''
-    for tr in table.children:
+    for tr in _event.children:
         if tr.name == 'col':
             continue
         if type(tr) != element.NavigableString:
@@ -56,6 +60,38 @@ def get_metadata(_activity_id):
                     key = td.text[:-1]
                 index += 1
     return _data
+
+
+def process_standings(_data):
+    standings = []
+    index = 0
+    for tr in _data.tbody.children:
+        if type(tr) == element.NavigableString:
+            if not tr.isspace():
+                print(tr)
+            continue
+        collect = {}
+        for td in tr.children:
+            if type(td) == element.NavigableString:
+                if not td.isspace():
+                    print(td)
+                continue
+            if index == 0:
+                collect['rank'] = td.text[:-1]
+                index += 1
+                continue
+            if index == 1:
+                players = td.text.split('-')
+                collect['player1'] = players[0].strip()
+                collect['player2'] = players[1].strip()
+                index += 1
+                continue
+            if index == 2:
+                # @TODO split this into a number and a unit
+                collect['score'] = td.text
+                standings.append(collect)
+                index = 0
+    return standings
 
 
 def process_results(_data):
@@ -119,14 +155,26 @@ def process_details(_data):
         tables.append(table)
     for table in tables:
         index = 0
+        # print(table.tbody.tr)
         for td in table.tbody.tr.children:
+            if type(td) == element.NavigableString:
+                if not td.isspace():
+                    print(td)
+                continue
             if index == 0:
                 # This table contains the game
-                pass
+                process_game_data(td)
             else:
                 # This table contains the board results
-                pass
-            if type(td) == element.NavigableString:
-                continue
-            print(td.name)
-            index +=1
+                process_results_data(td)
+
+            # print(td.name)
+            index += 1
+
+
+def process_game_data(_data):
+    pass
+
+
+def process_results_data(_data):
+    pass
