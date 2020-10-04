@@ -216,7 +216,7 @@ def process_game_data(_data, _number):
     # But it rotates the board so the designated player is always south
     board = {'number': _number, 'North': {}, 'East': {}, 'South': {}, 'West': {}}
     meta = rows[0].contents[1].text.split('/')
-    board['dealer'] = meta[0]
+    board['dealer'] = translate_seat(meta[0])
     board['vulnerable'] = meta[1]
     # print(rows[0].contents)
     # print(rows[1].contents)
@@ -257,7 +257,12 @@ def process_game_data(_data, _number):
     head = bidding_table.thead
     # WIP
     # body = bidding_table.body
-    # bidding = {'seat': {}}
+
+    # The header of the table reveals the seat and the players' names
+    bidding = {'number': _number, 'North': {}, 'South': {}, 'East': {}, 'West': {},
+               'dealer': board['dealer']}
+    index = 0
+    seats = []
     for seat in head.children:
         if type(seat) == element.NavigableString:
             if not seat.isspace():
@@ -268,11 +273,18 @@ def process_game_data(_data, _number):
                 if not tr.isspace():
                     print(tr)
                 continue
-            # @TODO Like the board, the bidding also rotates making
-            # the designated player sit in the last seat
-            # print(tr.name)
 
-    return {'board': board}
+            if index < 4:
+                seat = translate_seat(tr.text)
+                seats.append(seat)
+                bidding[seat]['seat'] = seat
+            else:
+                assert 4 <= index < 8
+                bidding[seats[index-4]]['player'] = tr.text
+            index = (index + 1) % 8
+
+    start = meta[0]  # Dealer in the original language
+    return {'board': board, 'bidding': bidding}
 
 
 def process_results_data(_data):
