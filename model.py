@@ -1,6 +1,7 @@
+import re
 import requests
 from bs4 import BeautifulSoup, element
-# rom pprint import pprint
+# from pprint import pprint
 
 
 def get_data(_activity_id, _username):
@@ -149,12 +150,15 @@ def process_details(_data):
     tables = []
     boards = []
     results = []
+    pattern = re.compile('Spel (\d+)\s+\(')
+    board_number = 0
     for table in _tables:
         if type(table) == element.NavigableString:
             continue
         tables.append(table)
     for table in tables:
         index = 0
+
         for td in table.tbody.tr.children:
             if type(td) == element.NavigableString:
                 if not td.isspace():
@@ -162,7 +166,12 @@ def process_details(_data):
                 continue
             if index == 0:
                 # This table contains the game
-                boards.append(process_game_data(td))
+                meta = table.thead.tr.find('th', class_='boardheaderleft')
+                # print(meta.text)
+                match = pattern.search(meta.text)
+                if match:
+                    board_number = match.group(1)
+                boards.append(process_game_data(td, board_number))
             else:
                 # This table contains the board results
                 results.append(process_results_data(td))
@@ -170,14 +179,29 @@ def process_details(_data):
     return boards, results
 
 
-def process_game_data(_data):
+def translate_seat(seat):
+    english = ''
+    if seat == 'N':
+        english = 'North'
+    elif seat == 'O':
+        english = 'East'
+    elif seat == 'Z':
+        english = 'South'
+    elif seat == 'W':
+        english = 'West'
+    else:
+        print(f"Unknown error. Seat = {seat} and this program will fail shortly ;)")
+    return english
+
+
+def process_game_data(_data, _number):
     if len(_data.contents) == 2:
         print("Board not played")
         # @TODO We can process the board here
         return {}
     board_table = _data.contents[1]
     bidding_table = _data.contents[5]
-    play_table = _data.contents[9]
+    # play_table = _data.contents[9]
 
     # Process board_table
     rows = []
@@ -189,46 +213,69 @@ def process_game_data(_data):
         if tr.name == 'col':
             continue
         rows.append(tr)
-    board = {'player1': {}, 'player2': {}, 'player3': {}, 'player4': {}}
+    # But it rotates the board so the designated player is always south
+    board = {'number': _number, 'North': {}, 'East': {}, 'South': {}, 'West': {}}
     meta = rows[0].contents[1].text.split('/')
     board['dealer'] = meta[0]
     board['vulnerable'] = meta[1]
-    print(rows[0].contents)
-    print(rows[1].contents)
+    # print(rows[0].contents)
+    # print(rows[1].contents)
     player_data = rows[0].contents[3].text.split(' - ')
-    board['player1']['name'] = player_data[1]
-    board['player1']['seat'] = player_data[0]
-    board['player1']['spades'] = rows[1].contents[3].text.strip()
-    board['player1']['hearts'] = rows[2].contents[3].text.strip()
-    board['player1']['diamonds'] = rows[3].contents[3].text.strip()
-    board['player1']['clubs'] = rows[4].contents[3].text.strip()
+    seat = translate_seat(player_data[0])
+    board[seat]['name'] = player_data[1]
+    board[seat]['seat'] = seat
+    board[seat]['spades'] = rows[1].contents[3].text.strip()
+    board[seat]['hearts'] = rows[2].contents[3].text.strip()
+    board[seat]['diamonds'] = rows[3].contents[3].text.strip()
+    board[seat]['clubs'] = rows[4].contents[3].text.strip()
     player_data = rows[4].contents[5].text.split(' - ')
-    board['player2']['name'] = player_data[1]
-    board['player2']['seat'] = player_data[0]
-    board['player2']['spades'] = rows[5].contents[5].text.strip()
-    board['player2']['hearts'] = rows[6].contents[5].text.strip()
-    board['player2']['diamonds'] = rows[7].contents[5].text.strip()
-    board['player2']['clubs'] = rows[8].contents[5].text.strip()
+    seat = translate_seat(player_data[0])
+    board[seat]['name'] = player_data[1]
+    board[seat]['seat'] = seat
+    board[seat]['spades'] = rows[5].contents[5].text.strip()
+    board[seat]['hearts'] = rows[6].contents[5].text.strip()
+    board[seat]['diamonds'] = rows[7].contents[5].text.strip()
+    board[seat]['clubs'] = rows[8].contents[5].text.strip()
     player_data = rows[4].contents[1].text.split(' - ')
-    board['player3']['name'] = player_data[1]
-    board['player3']['seat'] = player_data[0]
-    board['player3']['spades'] = rows[5].contents[1].text.strip()
-    board['player3']['hearts'] = rows[6].contents[1].text.strip()
-    board['player3']['diamonds'] = rows[7].contents[1].text.strip()
-    board['player3']['clubs'] = rows[8].contents[1].text.strip()
+    seat = translate_seat(player_data[0])
+    board[seat]['name'] = player_data[1]
+    board[seat]['seat'] = seat
+    board[seat]['spades'] = rows[5].contents[1].text.strip()
+    board[seat]['hearts'] = rows[6].contents[1].text.strip()
+    board[seat]['diamonds'] = rows[7].contents[1].text.strip()
+    board[seat]['clubs'] = rows[8].contents[1].text.strip()
     player_data = rows[8].contents[3].text.split(' - ')
-    board['player4']['name'] = player_data[1]
-    board['player4']['seat'] = player_data[0]
-    board['player4']['spades'] = rows[9].contents[3].text.strip()
-    board['player4']['hearts'] = rows[10].contents[3].text.strip()
-    board['player4']['diamonds'] = rows[11].contents[3].text.strip()
-    board['player4']['clubs'] = rows[12].contents[3].text.strip()
+    seat = translate_seat(player_data[0])
+    board[seat]['name'] = player_data[1]
+    board[seat]['seat'] = seat
+    board[seat]['spades'] = rows[9].contents[3].text.strip()
+    board[seat]['hearts'] = rows[10].contents[3].text.strip()
+    board[seat]['diamonds'] = rows[11].contents[3].text.strip()
+    board[seat]['clubs'] = rows[12].contents[3].text.strip()
 
     # Process bidding table
+    head = bidding_table.thead
+    # WIP
+    # body = bidding_table.body
+    # bidding = {'seat': {}}
+    for seat in head.children:
+        if type(seat) == element.NavigableString:
+            if not seat.isspace():
+                print(seat)
+            continue
+        for tr in seat.children:
+            if type(tr) == element.NavigableString:
+                if not tr.isspace():
+                    print(tr)
+                continue
+            # @TODO Like the board, the bidding also rotates making
+            # the designated player sit in the last seat
+            # print(tr.name)
 
     return {'board': board}
 
 
 def process_results_data(_data):
-    results_table = _data.contents[1]
+    # WIP
+    # results_table = _data.contents[1]
     return {}
