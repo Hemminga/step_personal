@@ -199,6 +199,8 @@ def process_game_data(_data, _number):
         print("Board not played")
         # @TODO We can process the board here
         return {}
+
+    # @TODO Split in three separate functions
     board_table = _data.contents[1]
     bidding_table = _data.contents[5]
     # play_table = _data.contents[9]
