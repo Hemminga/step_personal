@@ -165,13 +165,29 @@ def process_details(_data):
                     print(td)
                 continue
             if index == 0:
+                board = {}
                 # This table contains the game
                 meta = table.thead.tr.find('th', class_='boardheaderleft')
                 # print(meta.text)
                 match = pattern.search(meta.text)
                 if match:
                     board_number = match.group(1)
-                boards.append(process_game_data(td, board_number))
+
+                # Big work happening here
+                board_table, bidding_table, play_table = process_game_data(td)
+                first_seat_in_local_language = ''
+                _dealer = ''
+                if board_table:
+                    board_data, first_seat_in_local_language = process_board_table(board_table, board_number)
+                    _dealer = board_data['dealer']
+                    board['board'] = board_data
+                if bidding_table:
+                    bidding_data = process_bidding_table(bidding_table, board_number, _dealer)
+                    board['bidding'] = bidding_data
+                if play_table and first_seat_in_local_language:
+                    play_data = process_play_table(play_table, first_seat_in_local_language)
+                    board['play'] = play_data
+                boards.append(board)
             else:
                 # This table contains the board results
                 results.append(process_results_data(td))
@@ -194,17 +210,19 @@ def translate_seat(seat):
     return english
 
 
-def process_game_data(_data, _number):
+def process_game_data(_data):
     if len(_data.contents) == 2:
         print("Board not played")
         # @TODO We can process the board here
-        return {}
+        return {}, {}, {}
 
-    # @TODO Split in three separate functions
     board_table = _data.contents[1]
     bidding_table = _data.contents[5]
-    # play_table = _data.contents[9]
+    play_table = _data.contents[9]
+    return board_table, bidding_table, play_table
 
+
+def process_board_table(board_table, _number):
     # Process board_table
     rows = []
     for tr in board_table.children:
@@ -218,6 +236,7 @@ def process_game_data(_data, _number):
     # But it rotates the board so the designated player is always south
     board = {'number': _number, 'North': {}, 'East': {}, 'South': {}, 'West': {}}
     meta = rows[0].contents[1].text.split('/')
+    first_seat_in_local_language = meta[0]
     board['dealer'] = translate_seat(meta[0])
     board['vulnerable'] = meta[1]
     # print(rows[0].contents)
@@ -254,7 +273,10 @@ def process_game_data(_data, _number):
     board[seat]['hearts'] = rows[10].contents[3].text.strip()
     board[seat]['diamonds'] = rows[11].contents[3].text.strip()
     board[seat]['clubs'] = rows[12].contents[3].text.strip()
+    return board, first_seat_in_local_language
 
+
+def process_bidding_table(bidding_table, _number, _dealer):
     # Process bidding table
     head = bidding_table.thead
     # WIP
@@ -262,7 +284,7 @@ def process_game_data(_data, _number):
 
     # The header of the table reveals the seat and the players' names
     bidding = {'number': _number, 'North': {}, 'South': {}, 'East': {}, 'West': {},
-               'dealer': board['dealer']}
+               'dealer': _dealer}
     index = 0
     seats = []
     for seat in head.children:
@@ -284,9 +306,12 @@ def process_game_data(_data, _number):
                 assert 4 <= index < 8
                 bidding[seats[index-4]]['player'] = tr.text
             index = (index + 1) % 8
+    # return {'board': board, 'bidding': bidding}
+    return bidding
 
-    start = meta[0]  # Dealer in the original language
-    return {'board': board, 'bidding': bidding}
+
+def process_play_table(play_table, first_hand_in_local_language):
+    return {}
 
 
 def process_results_data(_data):
