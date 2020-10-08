@@ -178,17 +178,17 @@ def process_details(_data):
                 first_seat_in_local_language = ''
                 _dealer = ''
                 if board_table:
-                    board_data, first_seat_in_local_language = process_board_table(board_table, board_number)
+                    board_data = process_board_table(board_table, board_number)
                     _dealer = board_data['dealer']
                     board['board'] = board_data
                 if bidding_table:
                     bidding_data = process_bidding_table(bidding_table, board_number, _dealer)
                     board['bidding'] = bidding_data
-                if play_table and first_seat_in_local_language:
+                if play_table:
                     play_data, inner_play_table = extract_play_meta(play_table)
                     # Note that we are passing the play_data dict to the next stage
                     # to gather all information in one place
-                    play_data = process_play_table(inner_play_table, first_seat_in_local_language, play_data)
+                    play_data = process_play_table(inner_play_table, play_data)
                     board['play'] = play_data
                 boards.append(board)
             else:
@@ -239,7 +239,6 @@ def process_board_table(board_table, _number):
     # But it rotates the board so the designated player is always south
     board = {'number': _number, 'North': {}, 'East': {}, 'South': {}, 'West': {}}
     meta = rows[0].contents[1].text.split('/')
-    first_seat_in_local_language = meta[0]
     board['dealer'] = translate_seat(meta[0])
     board['vulnerable'] = meta[1]
     # print(rows[0].contents)
@@ -276,7 +275,7 @@ def process_board_table(board_table, _number):
     board[seat]['hearts'] = rows[10].contents[3].text.strip()
     board[seat]['diamonds'] = rows[11].contents[3].text.strip()
     board[seat]['clubs'] = rows[12].contents[3].text.strip()
-    return board, first_seat_in_local_language
+    return board
 
 
 def process_bidding_table(bidding_table, _number, _dealer):
@@ -350,7 +349,45 @@ def extract_play_meta(play_table):
     return play, _table
 
 
-def process_play_table(play_table, first_seat_in_local_language, play_data):
+def process_play_table(play_table, play_data):
+    tricks = []
+    trick = []
+    trans = str.maketrans('HVB', 'KQJ')
+    for tr in play_table.children:
+        if type(tr) == element.NavigableString:
+            if not tr.isspace():
+                print(tr)
+            continue
+        index = 0
+        trick_number = 1
+        for td in tr.children:
+            card = {}
+            if type(td) == element.NavigableString:
+                if not td.isspace():
+                    print(td)
+                continue
+            # print(f'{index}: {td}')
+            if index == 0:
+                trick_number = td.text[:-1]
+            else:
+                try:
+                    # Board may not be played
+                    # Trick may not be finished due to claim
+                    suit = td.contents[0]['alt']
+                    rank = td.text.translate(trans)
+                    card['trick'] = trick_number
+                    card['suit'] = suit
+                    card['rank'] = rank
+                    card['seat'] = None
+                    pprint(card)
+                    trick.append(card)
+                except AttributeError:
+                    continue
+                except TypeError:
+                    continue
+            index += 1
+        tricks.append(trick)
+    pprint(tricks)
     return play_data
 
 
