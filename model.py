@@ -1,7 +1,7 @@
 import re
 import requests
 from bs4 import BeautifulSoup, element
-# from pprint import pprint
+from pprint import pprint
 
 
 def get_data(_activity_id, _username):
@@ -185,7 +185,10 @@ def process_details(_data):
                     bidding_data = process_bidding_table(bidding_table, board_number, _dealer)
                     board['bidding'] = bidding_data
                 if play_table and first_seat_in_local_language:
-                    play_data = process_play_table(play_table, first_seat_in_local_language)
+                    play_data, inner_play_table = extract_play_meta(play_table)
+                    # Note that we are passing the play_data dict to the next stage
+                    # to gather all information in one place
+                    play_data = process_play_table(inner_play_table, first_seat_in_local_language, play_data)
                     board['play'] = play_data
                 boards.append(board)
             else:
@@ -310,8 +313,45 @@ def process_bidding_table(bidding_table, _number, _dealer):
     return bidding
 
 
-def process_play_table(play_table, first_hand_in_local_language):
-    return {}
+def extract_play_meta(play_table):
+    """
+    This function receives the Play table and returns
+    a dict with some meta data plus the inner table that
+    contains the actual Play.
+    :param play_table:
+    :return: dict, BeautifulSoup object
+    """
+    play = {}
+    for td in play_table.children:
+        if type(td) == element.NavigableString:
+            if not td.isspace():
+                print(td)
+            continue
+        if 'Slagen:' in td.text:
+            break
+        _alt = ''
+        if len(td.contents) > 3 and td.contents[3].text:
+            try:
+                _alt = td.contents[3].img['alt']
+            except KeyError:
+                # td.contents may not have an img and therefore no alt tag
+                pass
+            except TypeError:
+                # td.contents[3].img may not exist and give a 'NoneType' TypeError
+                pass
+            split_line = td.contents[3].text.split(' ', 1)
+            td.contents[3] = split_line[0] + _alt + ' ' + split_line[1]
+        if 'Resultaat:' in td.text:
+            play['result'] = td.contents[3]
+        elif 'Score:' in td.text:
+            play['score'] = td.contents[3]
+    # Prepare the inner table with Play data for further processing
+    _table = play_table.find('table')
+    return play, _table
+
+
+def process_play_table(play_table, first_seat_in_local_language, play_data):
+    return play_data
 
 
 def process_results_data(_data):
