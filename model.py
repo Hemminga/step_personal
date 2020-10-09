@@ -351,15 +351,17 @@ def extract_play_meta(play_table):
 
 def process_play_table(play_table, play_data):
     tricks = []
-    trick = []
     trans = str.maketrans('HVB', 'KQJ')
     for tr in play_table.children:
         if type(tr) == element.NavigableString:
             if not tr.isspace():
                 print(tr)
             continue
+        if tr.name == 'col':
+            continue
         index = 0
         trick_number = 1
+        trick = []
         for td in tr.children:
             card = {}
             if type(td) == element.NavigableString:
@@ -369,6 +371,8 @@ def process_play_table(play_table, play_data):
             # print(f'{index}: {td}')
             if index == 0:
                 trick_number = td.text[:-1]
+                index += 1
+                continue
             else:
                 try:
                     # Board may not be played
@@ -379,15 +383,23 @@ def process_play_table(play_table, play_data):
                     card['suit'] = suit
                     card['rank'] = rank
                     card['seat'] = None
-                    pprint(card)
+                    # @TODO Every trick is in it's own List.
+                    # It may be sufficient to directly append to List `tricks`
+                    # since they are ordered and for ckecks the card has a 'trick'
+                    # key holding the current trick number.
                     trick.append(card)
                 except AttributeError:
                     continue
                 except TypeError:
                     continue
             index += 1
+            if len(trick) == 0:
+                print(td)
+        if len(trick) == 0:
+            print(tr.name)
         tricks.append(trick)
-    pprint(tricks)
+    # pprint(tricks)
+    play_data['play'] = tricks
     return play_data
 
 
