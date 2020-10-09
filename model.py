@@ -175,7 +175,6 @@ def process_details(_data):
 
                 # Big work happening here
                 board_table, bidding_table, play_table = process_game_data(td)
-                first_seat_in_local_language = ''
                 _dealer = ''
                 if board_table:
                     board_data = process_board_table(board_table, board_number)
