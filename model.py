@@ -187,7 +187,7 @@ def process_details(_data):
                     play_data, inner_play_table = extract_play_meta(play_table)
                     # Note that we are passing the play_data dict to the next stage
                     # to gather all information in one place
-                    play_data = process_play_table(inner_play_table, play_data)
+                    play_data = process_play_table(inner_play_table, play_data, board_data)
                     board['play'] = play_data
                 boards.append(board)
             else:
@@ -227,6 +227,7 @@ def process_game_data(_data):
 def process_board_table(board_table, _number):
     # Process board_table
     rows = []
+    trans = str.maketrans('HVB', 'KQJ')
     for tr in board_table.children:
         if type(tr) == element.NavigableString:
             if not tr.isspace():
@@ -246,34 +247,34 @@ def process_board_table(board_table, _number):
     seat = translate_seat(player_data[0])
     board[seat]['name'] = player_data[1]
     board[seat]['seat'] = seat
-    board[seat]['spades'] = rows[1].contents[3].text.strip()
-    board[seat]['hearts'] = rows[2].contents[3].text.strip()
-    board[seat]['diamonds'] = rows[3].contents[3].text.strip()
-    board[seat]['clubs'] = rows[4].contents[3].text.strip()
+    board[seat]['spades'] = rows[1].contents[3].text.strip().translate(trans)
+    board[seat]['hearts'] = rows[2].contents[3].text.strip().translate(trans)
+    board[seat]['diamonds'] = rows[3].contents[3].text.strip().translate(trans)
+    board[seat]['clubs'] = rows[4].contents[3].text.strip().translate(trans)
     player_data = rows[4].contents[5].text.split(' - ')
     seat = translate_seat(player_data[0])
     board[seat]['name'] = player_data[1]
     board[seat]['seat'] = seat
-    board[seat]['spades'] = rows[5].contents[5].text.strip()
-    board[seat]['hearts'] = rows[6].contents[5].text.strip()
-    board[seat]['diamonds'] = rows[7].contents[5].text.strip()
-    board[seat]['clubs'] = rows[8].contents[5].text.strip()
+    board[seat]['spades'] = rows[5].contents[5].text.strip().translate(trans)
+    board[seat]['hearts'] = rows[6].contents[5].text.strip().translate(trans)
+    board[seat]['diamonds'] = rows[7].contents[5].text.strip().translate(trans)
+    board[seat]['clubs'] = rows[8].contents[5].text.strip().translate(trans)
     player_data = rows[4].contents[1].text.split(' - ')
     seat = translate_seat(player_data[0])
     board[seat]['name'] = player_data[1]
     board[seat]['seat'] = seat
-    board[seat]['spades'] = rows[5].contents[1].text.strip()
-    board[seat]['hearts'] = rows[6].contents[1].text.strip()
-    board[seat]['diamonds'] = rows[7].contents[1].text.strip()
-    board[seat]['clubs'] = rows[8].contents[1].text.strip()
+    board[seat]['spades'] = rows[5].contents[1].text.strip().translate(trans)
+    board[seat]['hearts'] = rows[6].contents[1].text.strip().translate(trans)
+    board[seat]['diamonds'] = rows[7].contents[1].text.strip().translate(trans)
+    board[seat]['clubs'] = rows[8].contents[1].text.strip().translate(trans)
     player_data = rows[8].contents[3].text.split(' - ')
     seat = translate_seat(player_data[0])
     board[seat]['name'] = player_data[1]
     board[seat]['seat'] = seat
-    board[seat]['spades'] = rows[9].contents[3].text.strip()
-    board[seat]['hearts'] = rows[10].contents[3].text.strip()
-    board[seat]['diamonds'] = rows[11].contents[3].text.strip()
-    board[seat]['clubs'] = rows[12].contents[3].text.strip()
+    board[seat]['spades'] = rows[9].contents[3].text.strip().translate(trans)
+    board[seat]['hearts'] = rows[10].contents[3].text.strip().translate(trans)
+    board[seat]['diamonds'] = rows[11].contents[3].text.strip().translate(trans)
+    board[seat]['clubs'] = rows[12].contents[3].text.strip().translate(trans)
     return board
 
 
@@ -348,7 +349,7 @@ def extract_play_meta(play_table):
     return play, _table
 
 
-def process_play_table(play_table, play_data):
+def process_play_table(play_table, play_data, board_data):
     tricks = []
     trans = str.maketrans('HVB', 'KQJ')
     for tr in play_table.children:
@@ -381,7 +382,7 @@ def process_play_table(play_table, play_data):
                     card['trick'] = trick_number
                     card['suit'] = suit
                     card['rank'] = rank
-                    card['seat'] = None
+                    card['seat'] = in_hand({'suit': suit, 'rank': rank, 'board': board_data})
                     # @TODO Every trick is in it's own List.
                     # It may be sufficient to directly append to List `tricks`
                     # since they are ordered and for ckecks the card has a 'trick'
@@ -400,6 +401,30 @@ def process_play_table(play_table, play_data):
     # pprint(tricks)
     play_data['play'] = tricks
     return play_data
+
+
+def in_hand(_data):
+    """
+    Determines in which hand a given card is.
+    :param _data: Dictionary with keys 'suit', 'rank' and 'board'
+    :return: Enum 'N', 'E', 'S', 'W'
+    """
+    suit = 'spades'
+    if _data['suit'] == 'H':
+        suit = 'hearts'
+    if _data['suit'] == 'D':
+        suit = 'diamonds'
+    if _data['suit'] == 'C':
+        suit = 'clubs'
+    if _data['rank'] in _data['board']['North'][suit]:
+        return 'N'
+    if _data['rank'] in _data['board']['East'][suit]:
+        return 'E'
+    if _data['rank'] in _data['board']['South'][suit]:
+        return 'S'
+    if _data['rank'] in _data['board']['West'][suit]:
+        return 'W'
+    return None
 
 
 def process_results_data(_data):
