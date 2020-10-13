@@ -149,7 +149,6 @@ def process_details(_data):
     # details = []
     tables = []
     boards = []
-    results = []
     pattern = re.compile('Spel (\d+)\s+\(')
     board_number = 0
     for table in _tables:
@@ -191,13 +190,12 @@ def process_details(_data):
                     board['play'] = play_data
             else:
                 # This table contains the board results
-                res, par = process_results_data(td)
+                results, par = process_results_data(td)
                 # pprint(results)
-                board['results'] = {'results': res, 'par': par}
+                board['results'] = {'results': results, 'par': par}
                 boards.append(board)
-                results.append({'results': res, 'par': par})
             index += 1
-    return boards, results
+    return boards
 
 
 def translate_seat(seat):
@@ -283,35 +281,111 @@ def process_board_table(board_table, _number):
 
 def process_bidding_table(bidding_table, _number, _dealer):
     # Process bidding table
-    head = bidding_table.thead
-    # WIP
-    # body = bidding_table.body
-
-    # The header of the table reveals the seat and the players' names
     bidding = {'number': _number, 'North': {}, 'South': {}, 'East': {}, 'West': {},
-               'dealer': _dealer}
-    index = 0
-    seats = []
-    for seat in head.children:
-        if type(seat) == element.NavigableString:
-            if not seat.isspace():
-                print(seat)
-            continue
-        for tr in seat.children:
+               'dealer': _dealer, 'first_seat': ''}
+
+    def process_bidding_header(_head):
+        # The header of the table reveals the seat and the players' names
+        index = 0
+        seats = []
+        for seat in _head.children:
+            if type(seat) == element.NavigableString:
+                if not seat.isspace():
+                    print(seat)
+                continue
+            for tr in seat.children:
+                if type(tr) == element.NavigableString:
+                    if not tr.isspace():
+                        print(tr)
+                    continue
+
+                if index < 4:
+                    seat = translate_seat(tr.text)
+                    seats.append(seat)
+                    if index == 0:
+                        bidding['first_seat'] = seat
+                    bidding[seat]['seat'] = seat
+                else:
+                    assert 4 <= index < 8
+                    bidding[seats[index-4]]['player'] = tr.text
+                index = (index + 1) % 8
+
+    def process_bidding_body(_body):
+        _first_seat = bidding['first_seat']
+        hands = ['North', 'East', 'South', 'West']
+        index = hands.index(_first_seat)
+        # This gives the list of hands in the same order as the (bidding) table
+        hands = [hands[(index+x) % 4] for x in range(len(hands))]
+        # print(f'index: {index}, hands: {hands}, fist_seat: {_first_seat}')
+        index_round = 0
+        bids = []
+        for tr in _body.children:
             if type(tr) == element.NavigableString:
                 if not tr.isspace():
                     print(tr)
                 continue
+            index_hand = 0
+            for td in tr.children:
+                if type(td) == element.NavigableString:
+                    if not td.isspace():
+                        print(td)
+                    continue
+                bid = {'round': index_round+1,
+                       'order': index_hand+1,
+                       'hand': hands[index_hand],
+                       'alert': False,
+                       'empty': False}
+                _alt = ''
+                try:
+                    _alt = td.contents[1]['alt']
+                except KeyError:
+                    # td.contents may have no img and therefore no alt tag
+                    pass
+                except TypeError:
+                    # td.contents[3].img may not exist and give a 'NoneType' TypeError
+                    pass
+                except AttributeError:
+                    pass
+                except IndexError:
+                    pass
+                double = ''
+                if _alt:
+                    suit = _alt
+                elif 'pas' in td.text:
+                    suit = 'pass'
+                elif 'SA' in td.text:
+                    suit = 'NT'
+                elif 'dbl' in td.text:
+                    double = 'X'
+                elif 'rdbl' in td.text:
+                    double = 'XX'
+                elif '-' in tr.text:
+                    suit = ''
+                    bid['empty'] = True
+                else:
+                    suit = ''
+                    bid['empty'] = True
+                if '*' in td.text:
+                    bid['alert'] = True
+                rank = ''
+                if td.text[0].isdigit():
+                    rank = td.text[0]
+                # print(f"{rank}{suit}{('*' if bid['alert'] else '')} {double}")
+                bid['rank'] = rank
+                bid['suit'] = suit
+                bid['double'] = double
+                bids.append(bid)
+                index_hand += 1
+            index_round += 1
+        # pprint(bids)
+        bidding['bids'] = bids
 
-            if index < 4:
-                seat = translate_seat(tr.text)
-                seats.append(seat)
-                bidding[seat]['seat'] = seat
-            else:
-                assert 4 <= index < 8
-                bidding[seats[index-4]]['player'] = tr.text
-            index = (index + 1) % 8
-    # return {'board': board, 'bidding': bidding}
+    head = bidding_table.thead
+    process_bidding_header(head)
+    # print(bidding_table)
+    body = bidding_table.tbody
+    process_bidding_body(body)
+
     return bidding
 
 
@@ -336,7 +410,7 @@ def extract_play_meta(play_table):
             try:
                 _alt = td.contents[3].img['alt']
             except KeyError:
-                # td.contents may not have an img and therefore no alt tag
+                # td.contents may have no img and therefore no alt tag
                 pass
             except TypeError:
                 # td.contents[3].img may not exist and give a 'NoneType' TypeError
