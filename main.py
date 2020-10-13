@@ -1,4 +1,5 @@
 import model
+import view
 from pprint import pprint
 
 activityid = 17972
@@ -15,7 +16,7 @@ if __name__ == '__main__':
     if len(tables) > 1:
         for table in tables[1:]:
             standings += model.process_standings(table)
-    pprint(standings)
+    # pprint(standings)
     # Board data
     data = model.get_data(activityid, username)
     data_tables = model.get_data_table(data)
@@ -33,4 +34,5 @@ if __name__ == '__main__':
     # results = model.process_results(tables[2])
     # pprint(results)
     boards, results = model.process_details(tables[4])
-    pprint(boards[0])
+    # pprint(boards[0])
+    view.save_lin(event_details, boards)

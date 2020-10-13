@@ -214,7 +214,7 @@ def translate_seat(seat):
 
 def process_game_data(_data):
     if len(_data.contents) == 2:
-        print("Board not played")
+        # print("Board not played")
         # @TODO We can process the board here
         return {}, {}, {}
 
@@ -383,21 +383,12 @@ def process_play_table(play_table, play_data, board_data):
                     card['suit'] = suit
                     card['rank'] = rank
                     card['seat'] = in_hand({'suit': suit, 'rank': rank, 'board': board_data})
-                    # @TODO Every trick is in it's own List.
-                    # It may be sufficient to directly append to List `tricks`
-                    # since they are ordered and for ckecks the card has a 'trick'
-                    # key holding the current trick number.
-                    trick.append(card)
+                    tricks.append(card)
                 except AttributeError:
                     continue
                 except TypeError:
                     continue
             index += 1
-            if len(trick) == 0:
-                print(td)
-        if len(trick) == 0:
-            print(tr.name)
-        tricks.append(trick)
     # pprint(tricks)
     play_data['play'] = tricks
     return play_data
@@ -428,6 +419,64 @@ def in_hand(_data):
 
 
 def process_results_data(_data):
-    # WIP
-    # results_table = _data.contents[1]
-    return {}
+    trans = str.maketrans('HVB', 'KQJ')
+    results_table = _data.contents[1].tbody
+    results = []
+    # pprint(results_table.tbody)
+    for tr in results_table.children:
+        if type(tr) == element.NavigableString:
+            if not tr.isspace():
+                print(tr)
+            continue
+        if tr.name == 'col':
+            continue
+        index = 0
+        result = {}
+        for td in tr.children:
+            if type(td) == element.NavigableString:
+                if not td.isspace():
+                    print(td)
+                continue
+            if index == 0:
+                result['leader'] = td.text
+            elif index == 1:
+                suit = 'pass'
+                double = ''
+                try:
+                    suit = td.contents[1]['alt']
+                except TypeError:
+                    if 'SA' in td.text:
+                        suit = 'SA'
+                except IndexError:
+                    if 'SA' in td.text:
+                        suit = 'SA'
+                if 'X' in td.text:
+                    double = 'X'
+                if 'XX' in td.text:
+                    double = 'XX'
+                result['contract'] = {'contract': td.text[0] + suit + double,
+                                      'level': td.text[0],
+                                      'suit': suit,
+                                      'double': double}
+            elif index == 2:
+                result['result'] = td.text
+            elif index == 3:
+                result['compass'] = td.text
+            elif index == 4:
+                try:
+                    suit = td.contents[0]['alt']
+                except TypeError:
+                    suit = ''
+                except IndexError:
+                    suit = ''
+                result['lead'] = {'lead': suit + td.text.translate(trans),
+                                  'suit': suit,
+                                  'value': td.text.translate(trans)}
+            elif index == 5:
+                result['points'] = td.text
+            elif index == 6:
+                result['score'] = td.text
+                results.append(result)
+            index += 1
+    pprint(results)
+    return results
