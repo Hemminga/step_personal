@@ -192,7 +192,8 @@ def process_details(_data):
                 boards.append(board)
             else:
                 # This table contains the board results
-                results.append(process_results_data(td))
+                results, par = process_results_data(td)
+                results.append({'results': results, 'par': par})
             index += 1
     return boards, results
 
@@ -478,5 +479,32 @@ def process_results_data(_data):
                 result['score'] = td.text
                 results.append(result)
             index += 1
+    par = calculate_par(results)
     pprint(results)
-    return results
+    return results, par
+
+
+def calculate_par(_results):
+    """
+    Calculate par for Butler type scoring
+    :param _results:
+    :return:
+    """
+    scores = []
+    for result in _results:
+        scores.append(int(result['points']))
+    scores.sort()
+    if len(scores) == 0:
+        return 0
+    # Remove highest and lowest score
+    # Bij 1 t/m 3 scores wordt er niets weggelaten, bij 4 of 5 scores worden de twee buitenste score
+    # voor de helft meegenomen in de weging, bij 6 of meer scores worden de hoogste en laagste 10% van
+    # de scores weggelaten.
+    if len (scores) > 3 and len(scores) < 6:
+        scores = [scores[0]] + scores[1:-1] + scores[1:-1] + [scores[-1]]
+    else:
+        treshold = round(len(scores) / 10)
+        scores = scores[treshold:-treshold]
+    avg = int(sum(scores) / len(scores) / 10) * 10
+    # print(f'Butlerscore: {avg}')
+    return avg
