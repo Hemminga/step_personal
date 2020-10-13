@@ -189,11 +189,13 @@ def process_details(_data):
                     # to gather all information in one place
                     play_data = process_play_table(inner_play_table, play_data, board_data)
                     board['play'] = play_data
-                boards.append(board)
             else:
                 # This table contains the board results
-                results, par = process_results_data(td)
-                results.append({'results': results, 'par': par})
+                res, par = process_results_data(td)
+                # pprint(results)
+                board['results'] = {'results': res, 'par': par}
+                boards.append(board)
+                results.append({'results': res, 'par': par})
             index += 1
     return boards, results
 
@@ -352,7 +354,7 @@ def extract_play_meta(play_table):
 
 def process_play_table(play_table, play_data, board_data):
     tricks = []
-    trans = str.maketrans('HVB', 'KQJ')
+    trans = str.maketrans('HVBOZ', 'KQJEW')
     for tr in play_table.children:
         if type(tr) == element.NavigableString:
             if not tr.isspace():
@@ -420,7 +422,7 @@ def in_hand(_data):
 
 
 def process_results_data(_data):
-    trans = str.maketrans('HVB', 'KQJ')
+    trans = str.maketrans('HVBOZ', 'KQJEW')
     results_table = _data.contents[1].tbody
     results = []
     # pprint(results_table.tbody)
@@ -462,7 +464,7 @@ def process_results_data(_data):
             elif index == 2:
                 result['result'] = td.text
             elif index == 3:
-                result['compass'] = td.text
+                result['compass'] = td.text.translate(trans)
             elif index == 4:
                 try:
                     suit = td.contents[0]['alt']
@@ -480,7 +482,7 @@ def process_results_data(_data):
                 results.append(result)
             index += 1
     par = calculate_par(results)
-    pprint(results)
+    # pprint(results)
     return results, par
 
 
@@ -500,7 +502,7 @@ def calculate_par(_results):
     # Bij 1 t/m 3 scores wordt er niets weggelaten, bij 4 of 5 scores worden de twee buitenste score
     # voor de helft meegenomen in de weging, bij 6 of meer scores worden de hoogste en laagste 10% van
     # de scores weggelaten.
-    if len (scores) > 3 and len(scores) < 6:
+    if 3 < len(scores) < 6:
         scores = [scores[0]] + scores[1:-1] + scores[1:-1] + [scores[-1]]
     else:
         treshold = round(len(scores) / 10)

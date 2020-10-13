@@ -34,5 +34,5 @@ if __name__ == '__main__':
     # results = model.process_results(tables[2])
     # pprint(results)
     boards, results = model.process_details(tables[4])
-    # pprint(boards[0])
+    pprint(boards[0])
     view.save_lin(event_details, boards)
