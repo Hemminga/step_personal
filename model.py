@@ -149,7 +149,7 @@ def process_details(_data):
     # details = []
     tables = []
     boards = []
-    pattern = re.compile('Spel (\d+)\s+\(')
+    pattern = re.compile(r'Spel (\d+)\s+\(')
     board_number = 0
     for table in _tables:
         if type(table) == element.NavigableString:
@@ -318,6 +318,7 @@ def process_bidding_table(bidding_table, _number, _dealer):
         hands = [hands[(index+x) % 4] for x in range(len(hands))]
         # print(f'index: {index}, hands: {hands}, fist_seat: {_first_seat}')
         index_round = 0
+        index_real_bid = 1
         bids = []
         for tr in _body.children:
             if type(tr) == element.NavigableString:
@@ -331,10 +332,12 @@ def process_bidding_table(bidding_table, _number, _dealer):
                         print(td)
                     continue
                 bid = {'round': index_round+1,
-                       'order': index_hand+1,
+                       'order_in_round': index_hand+1,
                        'hand': hands[index_hand],
                        'alert': False,
-                       'empty': False}
+                       'empty': False,
+                       'bid': '',
+                       'order_in_bidding': 0}
                 _alt = ''
                 try:
                     _alt = td.contents[1]['alt']
@@ -370,12 +373,17 @@ def process_bidding_table(bidding_table, _number, _dealer):
                 rank = ''
                 if td.text[0].isdigit():
                     rank = td.text[0]
-                # print(f"{rank}{suit}{('*' if bid['alert'] else '')} {double}")
+                if not bid['empty']:
+                    bid['bid'] = f"{index_real_bid}: {rank}{suit}{double}" \
+                    + f"{('*' if bid['alert'] else '')}"
                 bid['rank'] = rank
                 bid['suit'] = suit
                 bid['double'] = double
                 bids.append(bid)
                 index_hand += 1
+                if not bid['empty']:
+                    index_real_bid += 1
+                    bid['order_in_bidding'] = index_real_bid
             index_round += 1
         # pprint(bids)
         bidding['bids'] = bids
