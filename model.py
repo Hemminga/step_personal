@@ -405,7 +405,8 @@ def extract_play_meta(play_table):
     :param play_table:
     :return: dict, BeautifulSoup object
     """
-    play = {}
+    trans = str.maketrans('HVBOZ', 'KQJEW')
+    play = {'result': {}}
     for td in play_table.children:
         if type(td) == element.NavigableString:
             if not td.isspace():
@@ -426,7 +427,33 @@ def extract_play_meta(play_table):
             split_line = td.contents[3].text.split(' ', 1)
             td.contents[3] = split_line[0] + _alt + ' ' + split_line[1]
         if 'Resultaat:' in td.text:
-            play['result'] = td.contents[3]
+            match = re.search(r'door (\w) ', td.text)
+            declarer = ''
+            if match:
+                declarer = match.group(1).translate(trans)
+            match = re.search(r' (.+) door', td.text)
+            res = ''
+            if match:
+                res = match.group(1)
+            match = re.search(r'= ([+-]?\d+)$', td.text)
+            score = '0'
+            if match:
+                score = match.group(1)
+            if _alt:
+                suit = _alt
+                level = td.contents[3][0]
+            elif 'pas' in td.contents[3]:
+                suit = 'pass'
+                level = ''
+            elif 'SA' in td.contents[3]:
+                suit = 'NT'
+                level = td.contents[3][0]
+            play['result']['string'] = td.contents[3]
+            play['result']['declarer'] = declarer
+            play['result']['suit'] = suit
+            play['result']['level'] = level
+            play['result']['result'] = res
+            play['result']['points'] = score
         elif 'Score:' in td.text:
             play['score'] = td.contents[3]
     # Prepare the inner table with Play data for further processing
@@ -523,7 +550,7 @@ def process_results_data(_data):
                     print(td)
                 continue
             if index == 0:
-                result['leader'] = td.text
+                result['declarer'] = td.text
             elif index == 1:
                 suit = 'pass'
                 double = ''
