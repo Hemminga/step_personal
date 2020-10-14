@@ -382,8 +382,8 @@ def process_bidding_table(bidding_table, _number, _dealer):
                 bids.append(bid)
                 index_hand += 1
                 if not bid['empty']:
-                    index_real_bid += 1
                     bid['order_in_bidding'] = index_real_bid
+                    index_real_bid += 1
             index_round += 1
         # pprint(bids)
         bidding['bids'] = bids
