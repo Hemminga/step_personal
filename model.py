@@ -406,7 +406,7 @@ def extract_play_meta(play_table):
     :return: dict, BeautifulSoup object
     """
     trans = str.maketrans('HVBOZ', 'KQJEW')
-    play = {'result': {}}
+    play = {'result': {}, 'score': {'score': '', 'value': '0', 'unit': 'IMP'}}
     for td in play_table.children:
         if type(td) == element.NavigableString:
             if not td.isspace():
@@ -431,6 +431,11 @@ def extract_play_meta(play_table):
             declarer = ''
             if match:
                 declarer = match.group(1).translate(trans)
+                compass = ['West', 'North', 'East', 'South']
+                for c in compass:
+                    if declarer == c[0]:
+                        declarer = c
+                        break
             match = re.search(r' (.+) door', td.text)
             res = ''
             if match:
@@ -455,7 +460,11 @@ def extract_play_meta(play_table):
             play['result']['result'] = res
             play['result']['points'] = score
         elif 'Score:' in td.text:
-            play['score'] = td.contents[3]
+            play['score']['score'] = td.contents[3].strip()
+            match = re.search(r'(^[+-]?\d+) (\w+)$', td.contents[3].strip())
+            if match:
+                play['score']['value'] = match.group(1)
+                play['score']['unit'] = match.group(2)
     # Prepare the inner table with Play data for further processing
     _table = play_table.find('table')
     return play, _table

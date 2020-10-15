@@ -35,4 +35,4 @@ if __name__ == '__main__':
     # pprint(results)
     boards = model.process_details(tables[4])
     pprint(boards[0])
-    view.save_lin(event_details, boards)
+    view.save_lin(event_details, boards, username)
