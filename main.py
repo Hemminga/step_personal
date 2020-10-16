@@ -33,6 +33,6 @@ if __name__ == '__main__':
     # have benefit of adding the lead.
     # results = model.process_results(tables[2])
     # pprint(results)
-    boards = model.process_details(tables[4])
+    boards = model.process_details(tables[4], username)
     pprint(boards[0])
-    view.save_lin(event_details, boards, username)
+    view.save_lin(event_details, boards)

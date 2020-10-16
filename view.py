@@ -1,8 +1,9 @@
+import math
 import re
 from pprint import pprint
 
 
-def save_lin(_details, _data, username):
+def save_lin(_details, _data):
     boards_text = _details['Spellen']
     pattern = re.compile(r'\((\d+) x (\d+)\)')
     match = pattern.search(boards_text)
@@ -15,13 +16,16 @@ def save_lin(_details, _data, username):
     print(boards)
 
     if _details['Speelvorm'] == 'Paren':
-        # Other option is 'I' for IMPs but that seem to be Teams only
+        # Other option is 'I' for IMPs (teams and pairs?)
+        # Found B for board-a-match
         # P is for Pairs with MP scoring
-        _format = 'P'
+        _format = 'I'
 
     tournament_name = 'De Zeerob ' + _details['Gespeeld']
-    detail_name = username
+    username = _data[0]['perspective']['username']
+    detail_name = username  # default
     # For the subtitle: find partner of `username`
+    partner = ''
     if _data[0]['bidding']['East']['player'] == username:
         partner = _data[0]['bidding']['West']['player']
     if _data[0]['bidding']['West']['player'] == username:
@@ -31,7 +35,7 @@ def save_lin(_details, _data, username):
     if _data[0]['bidding']['South']['player'] == username:
         partner = _data[0]['bidding']['North']['player']
     if partner:
-        detail_name = username + ' - ' + partner
+        detail_name = username + (' - ' + partner if partner else '')
 
     # .lin label |vg|
     # Event name `tournament name`
@@ -87,6 +91,7 @@ def save_lin(_details, _data, username):
         if reverse_scoring:
             score = 1 - score
         mp.append(str(score))
+        # @TODO |mp| is MP score according to tenace. Will it work with IMP?
         mp.append('')
     print('vg|' + vg + '|')
     print('rs|' + ','.join(rs) + '|')
@@ -98,12 +103,41 @@ def save_lin(_details, _data, username):
     # Second cycle for individual game data
     index_round = 0
     index_board = 0
-    seats = ['South', 'West', 'North', 'East']
+    seats = ['North', 'East', 'South', 'West']
     # In the board details section of the .lin file, the declarer is 'South' or first mentioned.
-    pn = []
     for b in _data:
+        if 'play' not in b:
+            continue
+        pn = []
         declarer = b['play']['result']['declarer']
-        pn.append(declarer)
+        pn.append(b['bidding'][declarer]['player'])
+        index = seats.index(declarer)
+        pn.append(b['bidding'][seats[(index + 1) % 4]]['player'])
+        pn.append(b['bidding'][seats[(index + 2) % 4]]['player'])
+        pn.append(b['bidding'][seats[(index + 3) % 4]]['player'])
+        print('pn|' + ','.join(pn) + '|')
+        board_number = int(b['board']['number'])
+        print('qx|o' + str(board_number) + '|')
+        print('rh||')  # Reset header
+        print('ah|' + 'Board ' + str(board_number) + '|')  # Board name
+        dealer = declarer[(board_number-1) % 4]
+        vuln_table = ['0', 'n', 'e', 'b']
+        vulnerable = vuln_table[((board_number-1) % 16 + math.floor(board_number / 4)) % 4]
+        print('sv|' + vulnerable + '|')
+        # The leading digit in the |bm| string indicates the first hand where West would be 1
+        board_starts_with = 2  # North
+        hands = ''
+        for seat in seats:
+            hand = 'S{}H{}D{}C{}'.format(
+                b['board'][seat]['spades'],
+                b['board'][seat]['hearts'],
+                b['board'][seat]['diamonds'],
+                b['board'][seat]['clubs']
+            )
+            hands += hand + ','
+        print(f'bm|{board_starts_with}{hands[0:-1]}|')
+        em = b['play']['score']['value']
+        print(f"em|{b['perspective']['direction']} {em}")
 
         index_board += 1
         if index_board % int(boards_each_round) == 0:

@@ -144,7 +144,7 @@ def process_results(_data):
     return results
 
 
-def process_details(_data):
+def process_details(_data, _user):
     _tables = _data.td.find_all('table', recursive=False)
     # details = []
     tables = []
@@ -164,7 +164,7 @@ def process_details(_data):
                     print(td)
                 continue
             if index == 0:
-                board = {}
+                board = {'perspective': {'username': _user, 'direction': '-'}}  # The step tables as seen from this users perspective
                 # This table contains the game
                 meta = table.thead.tr.find('th', class_='boardheaderleft')
                 # print(meta.text)
@@ -178,6 +178,12 @@ def process_details(_data):
                 if board_table:
                     board_data = process_board_table(board_table, board_number)
                     _dealer = board_data['dealer']
+                    directions = {'East': 'EW', 'West': 'EW', 'North': 'NS', 'South': 'NS'}
+                    seats = ['North', 'East', 'South', 'West']
+                    for seat in seats:
+                        if board_data[seat]['name'] == _user:
+                            board['perspective']['direction'] = directions[seat]
+                            break
                     board['board'] = board_data
                 if bidding_table:
                     bidding_data = process_bidding_table(bidding_table, board_number, _dealer)
