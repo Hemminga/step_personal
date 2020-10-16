@@ -369,8 +369,10 @@ def process_bidding_table(bidding_table, _number, _dealer):
                     suit = 'NT'
                 elif 'dbl' in td.text:
                     double = 'X'
+                    suit = 'X'
                 elif 'rdbl' in td.text:
                     double = 'XX'
+                    suit = 'XX'
                 elif '-' in tr.text:
                     suit = ''
                     bid['empty'] = True
