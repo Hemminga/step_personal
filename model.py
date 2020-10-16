@@ -164,7 +164,8 @@ def process_details(_data, _user):
                     print(td)
                 continue
             if index == 0:
-                board = {'perspective': {'username': _user, 'direction': '-'}}  # The step tables as seen from this users perspective
+                # The step tables as seen from this users perspective
+                board = {'perspective': {'username': _user, 'direction': '-'}}
                 # This table contains the game
                 meta = table.thead.tr.find('th', class_='boardheaderleft')
                 # print(meta.text)
@@ -599,15 +600,18 @@ def process_analyze_tricks(_data):
         made = needs
         if _data['play']['result']['result'] != 'C':
             made = needs + int(_data['play']['result']['result'])
-        _data['play']['tricks'] = {}
-        _data['play']['tricks']['needs'] = needs
-        _data['play']['tricks']['made'] = made
-        _data['play']['tricks']['tricks'] = tricks
-        _data['play']['tricks']['EW'] = tricks_ew
-        _data['play']['tricks']['NS'] = tricks_ns
-        _data['play']['tricks']['play'] = _data['play']['tricks'][side]
-        _data['play']['tricks']['defend'] = _data['play']['tricks'][opp]
-        _data['play']['tricks']['claim'] = _data['play']['tricks']['made'] - _data['play']['tricks']['play']
+    _data['play']['tricks'] = {}
+    _data['play']['tricks']['needs'] = needs
+    _data['play']['tricks']['made'] = made
+    _data['play']['tricks']['tricks'] = tricks
+    _data['play']['tricks']['EW'] = tricks_ew
+    _data['play']['tricks']['NS'] = tricks_ns
+    _data['play']['tricks']['play'] = _data['play']['tricks'][side]
+    _data['play']['tricks']['defend'] = _data['play']['tricks'][opp]
+    # @TODO Claim is possibly fishy so here is a debug print
+    # print(f"{len(tricks)} > made: {_data['play']['tricks']['made']} - {side}: {_data['play']['tricks']['play']}" \
+    # + " ({opp}: {_data['play']['tricks']['defend']})")
+    _data['play']['tricks']['claim'] = _data['play']['tricks']['made'] - _data['play']['tricks']['play']
     return _data
 
 
