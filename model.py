@@ -193,7 +193,9 @@ def process_details(_data, _user):
                     # Note that we are passing the play_data dict to the next stage
                     # to gather all information in one place
                     play_data = process_play_table(inner_play_table, play_data, board_data)
+                    # In orther to determine a potential claim we need to analyze the tricks
                     board['play'] = play_data
+                    board = process_analyze_tricks(board)
             else:
                 # This table contains the board results
                 results, par = process_results_data(td)
@@ -488,7 +490,6 @@ def process_play_table(play_table, play_data, board_data):
             continue
         index = 0
         trick_number = 1
-        trick = []
         for td in tr.children:
             card = {}
             if type(td) == element.NavigableString:
@@ -543,6 +544,71 @@ def in_hand(_data):
     if _data['rank'] in _data['board']['West'][suit]:
         return 'W'
     return None
+
+
+def process_analyze_tricks(_data):
+    order = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2']
+    tricks_ns = 0
+    tricks_ew = 0
+
+    def is_higher(card_first, card_second, trump):
+        # print(f'card_first: {card_first} vs card_second: {card_second}')
+        if card_first['suit'] == trump:
+            if card_second['suit'] != trump:
+                # print(f'card_first {card_first} is trump')
+                return card_first
+        if card_second['suit'] == trump:
+            if card_first['suit'] != trump:
+                # print(f'card_second {card_second} is trump')
+                return card_second
+        # Both are trump or both are not trump or trump == 'NT'
+        if order.index(card_first['rank']) < order.index(card_second['rank']):
+            # print(f'card_first {card_first} is higher')
+            return card_first
+        else:
+            # print(f'card_second {card_second} is higher')
+            return card_second
+
+    index = 0
+    trick = []
+    tricks = []
+    for play in _data['play']['play']:
+        trick.append(play)
+        index += 1
+        if index == 4:
+            # pprint(trick)
+            higher = is_higher(trick[0], trick[1], _data['play']['result']['suit'])
+            higher = is_higher(higher, trick[2], _data['play']['result']['suit'])
+            higher = is_higher(higher, trick[3], _data['play']['result']['suit'])
+            tricks.append(higher['seat'])
+            if higher['seat'] in ['E', 'W']:
+                tricks_ew += 1
+            if higher['seat'] in ['N', 'S']:
+                tricks_ns += 1
+            trick = []
+            index = 0
+        # @TODO Will this fail in case of a passed out board?
+        needs = 6 + int(_data['play']['result']['level'])
+        declarer = _data['play']['result']['declarer']
+        if declarer in ['East', 'West']:
+            side = 'EW'
+            opp = 'NS'
+        if declarer in ['North', 'South']:
+            side = 'NS'
+            opp = 'EW'
+        made = needs
+        if _data['play']['result']['result'] != 'C':
+            made = needs + int(_data['play']['result']['result'])
+        _data['play']['tricks'] = {}
+        _data['play']['tricks']['needs'] = needs
+        _data['play']['tricks']['made'] = made
+        _data['play']['tricks']['tricks'] = tricks
+        _data['play']['tricks']['EW'] = tricks_ew
+        _data['play']['tricks']['NS'] = tricks_ns
+        _data['play']['tricks']['play'] = _data['play']['tricks'][side]
+        _data['play']['tricks']['defend'] = _data['play']['tricks'][opp]
+        _data['play']['tricks']['claim'] = _data['play']['tricks']['made'] - _data['play']['tricks']['play']
+    return _data
 
 
 def process_results_data(_data):

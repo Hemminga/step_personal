@@ -137,8 +137,16 @@ def save_lin(_details, _data):
             hands += hand + ','
         print(f'bm|{board_starts_with}{hands[0:-1]}|')
         em = b['play']['score']['value']
-        print(f"em|{b['perspective']['direction']} {em}")
-
+        print(f"em|{b['perspective']['direction']} {em}|")
+        print(f"len(b['play']['play']): {len(b['play']['play'])}")
+        for i in range(52):
+            if 1 != 52 and len(b['play']['play']) == i:
+                break
+            print(f"pc|{b['play']['play'][i]['suit']}{b['play']['play'][i]['rank']}|", end='')
+            if i % 4 == 3:
+                print('pg||')
+        if b['play']['tricks']['claim'] > 0:
+            print(f"mc|{b['play']['tricks']['claim']}|")
         index_board += 1
         if index_board % int(boards_each_round) == 0:
             index_board = 0
